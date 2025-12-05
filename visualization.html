@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>数据可视化交互网页 - 第6章示例</title>
     <script src="https://unpkg.com/d3@7/dist/d3.min.js"></script>
+    <script>
+        // 备用CDN加载方案
+        if (typeof d3 === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://d3js.org/d3.v7.min.js';
+            document.head.appendChild(script);
+        }
+    </script>
     <style>
         * {
             margin: 0;
