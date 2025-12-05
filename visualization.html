@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>数据可视化交互网页 - 第6章示例</title>
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
-    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <script>
         // 多重CDN备用加载方案 - 优化Cloudflare兼容性
@@ -535,12 +532,33 @@
         // 初始化页面
         document.addEventListener('DOMContentLoaded', function() {
             initializeWindDataInputs();
-            initializeChart();
-            updateChart();
+            // 等待D3.js加载完成
+            setTimeout(() => {
+                if (typeof d3 !== 'undefined') {
+                    initializeChart();
+                    updateChart();
+                } else {
+                    showStatus('图表库加载中，请稍候...', 'info');
+                    setTimeout(() => {
+                        if (typeof d3 !== 'undefined') {
+                            initializeChart();
+                            updateChart();
+                        } else {
+                            showStatus('图表库加载失败，请刷新页面重试', 'info');
+                        }
+                    }, 2000);
+                }
+            }, 500);
         });
 
         // 初始化图表
         function initializeChart() {
+            if (typeof d3 === 'undefined') {
+                console.error('D3.js尚未加载完成，等待加载...');
+                setTimeout(initializeChart, 100);
+                return;
+            }
+            
             const chartElement = document.getElementById('chart');
             const rect = chartElement.getBoundingClientRect();
             width = rect.width - margin.left - margin.right;
