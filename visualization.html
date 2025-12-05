@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>数据可视化交互网页 - 第6章示例</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -917,14 +917,7 @@
 
             drawPolygonAxes(xScale, yScale);
 
-            // 添加保存按钮
-            const saveButton = g.append('foreignObject')
-                .attr('x', width - 120)
-                .attr('y', -60)
-                .attr('width', 100)
-                .attr('height', 30)
-                .append('xhtml:div')
-                .html('<button class="btn save-btn">📷 保存图片</button>');
+
             
             // 更新使用说明到外部元素
             document.getElementById('chartDescription').textContent = '六边形：规则正六边形，中心在原点(0,0)';
