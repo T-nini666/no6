@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据可视化交互网页 - 第6章示例</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .control-panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            height: fit-content;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .section h4 {
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .data-inputs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .data-input {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .data-input label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .data-input input {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .data-input input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 5px;
+            min-width: 120px;
+        }
+
+        .btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.active {
+            background: #48bb78;
+        }
+
+        .btn.secondary {
+            background: #e53e3e;
+        }
+
+        .btn.secondary:hover {
+            background: #c53030;
+        }
+
+        .btn.secondary.active {
+            background: #38a169;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .chart-type-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .chart-type-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: #e2e8f0;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .chart-type-btn:hover {
+            background: #cbd5e0;
+        }
+
+        .chart-type-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #5a67d8;
+        }
+
+        .status-message {
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 14px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .status-message.show {
+            opacity: 1;
+        }
+
+        .status-message.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .status-message.info {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 1px solid #90cdf4;
+        }
+
+        #chart {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            margin-top: 10px;
+        }
+
+        .axis-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .axis-btn {
+            padding: 8px 12px;
+            font-size: 13px;
+            min-width: auto;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-inputs {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+
+        .section-description {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        /* 图表样式 - 使用RdPu颜色映射 */
+        .line {
+            fill: none;
+            stroke-width: 3;
+        }
+
+        .line-cos {
+            fill: none;
+            stroke-width: 3;
+        }
+
+        .triangle {
+            fill: #c77dff;
+            stroke: white;
+            stroke-width: 2;
+        }
+
+        .dot {
+            stroke: white;
+            stroke-width: 2;
+        }
+
+        .pentagon {
+            fill: rgba(221, 160, 221, 0.3);
+            stroke: #c77dff;
+            stroke-width: 2;
+        }
+
+        .hexagon {
+            fill: rgba(240, 198, 246, 0.3);
+            stroke: #c77dff;
+            stroke-width: 2;
+        }
+
+        .polygon {
+            fill: rgba(221, 160, 221, 0.3);
+            stroke: #c77dff;
+            stroke-width: 2;
+        }
+
+        .axis-line {
+            stroke: #333;
+            stroke-width: 2;
+        }
+
+        .axis-line.hidden {
+            stroke: transparent;
+        }
+
+        .tick-line {
+            stroke: #333;
+            stroke-width: 1;
+        }
+
+        .grid-line {
+            stroke: #e0e0e0;
+            stroke-width: 0.5;
+            stroke-dasharray: 2,2;
+        }
+
+        .polygon {
+            fill: rgba(102, 126, 234, 0.3);
+            stroke: #667eea;
+            stroke-width: 2;
+        }
+
+        .title {
+            font-size: 16px;
+            font-weight: bold;
+            text-anchor: middle;
+        }
+
+        .axis-text {
+            font-size: 12px;
+            fill: #666;
+        }
+
+        .axis-label {
+            font-size: 14px;
+            fill: #333;
+        }
+
+        .save-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            min-width: auto;
+            background: #c77dff;
+        }
+
+        .save-btn:hover {
+            background: #b366ff;
+        }
+
+        .chart-description {
+            font-size: 12px;
+            color: #666;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 8px;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 数据可视化交互网页 - 第6章示例</h1>
+        </header>
+
+        <div class="main-content">
+            <aside class="control-panel">
+                <div class="section">
+                    <h3>📈 图表类型</h3>
+                    <div class="chart-type-selector">
+                        <div class="chart-type-btn active" onclick="switchChartType('wind')">风速图</div>
+                        <div class="chart-type-btn" onclick="switchChartType('pentagon')">五边形</div>
+                        <div class="chart-type-btn" onclick="switchChartType('hexagon')">六边形</div>
+                        <div class="chart-type-btn" onclick="switchChartType('sinCos')">正弦余弦</div>
+                    </div>
+                </div>
+
+                <div class="section" id="windDataSection">
+                    <h3>🌪️ 风速数据设置</h3>
+                    <div class="section-description">
+                        设置深圳市24小时平均风速数据（单位：m/s）
+                    </div>
+                    <div class="data-inputs" id="windDataInputs">
+                        <!-- 动态生成 -->
+                    </div>
+                    <button class="btn" onclick="updateWindData()">更新数据</button>
+                </div>
+
+                <div class="section" id="spineControlsSection">
+                    <h3>🎛️ 轴脊控制</h3>
+                    
+                    <div class="subsection">
+                        <h4>隐藏轴脊</h4>
+                        <div class="button-group">
+                            <button class="btn" onclick="toggleSpine('top')">上轴脊</button>
+                            <button class="btn" onclick="toggleSpine('bottom')">下轴脊</button>
+                            <button class="btn" onclick="toggleSpine('left')">左轴脊</button>
+                            <button class="btn" onclick="toggleSpine('right')">右轴脊</button>
+                            <button class="btn secondary" onclick="toggleAllSpines()">全部切换</button>
+                        </div>
+                    </div>
+
+                    <div class="subsection">
+                        <h4>移动轴脊</h4>
+                        <div class="section-description">
+                            点击"居中轴脊"让原点(0,0)位于图形正中心（适用于五边形图、六边形图和正弦余弦图）
+                        </div>
+                        <div class="axis-controls">
+                            <button class="btn axis-btn" onclick="centerOrigin()">居中轴脊</button>
+                            <button class="btn axis-btn" onclick="resetSpines()">重置轴脊</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <button class="btn" onclick="resetAll()">🔄 重置所有设置</button>
+                </div>
+
+                <div class="status-message" id="statusMessage"></div>
+            </aside>
+
+            <main class="chart-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div id="chartDescription" class="chart-description"></div>
+                    <button class="btn save-btn" onclick="saveChart()">📷 保存图片</button>
+                </div>
+                <div id="chart"></div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentChartType = 'wind';
+        let windData = [7, 9, 11, 14, 8, 15, 22, 11, 10, 11, 11, 13, 
+                       8, 7, 6, 5, 4, 3, 2, 2, 1, 1, 1, 1];
+        let hours = Array.from({length: 24}, (_, i) => i);
+        
+        // 轴脊状态
+        let spineStates = {
+            top: true,
+            bottom: true,
+            left: true,
+            right: true
+        };
+
+        let spinePositions = {
+            left: 'normal',
+            bottom: 'normal'
+        };
+
+        let svg, g, width, height;
+        let margin = {top: 60, right: 60, bottom: 80, left: 80};
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeWindDataInputs();
+            initializeChart();
+            updateChart();
+        });
+
+        // 初始化图表
+        function initializeChart() {
+            const chartElement = document.getElementById('chart');
+            const rect = chartElement.getBoundingClientRect();
+            width = rect.width - margin.left - margin.right;
+            height = rect.height - margin.top - margin.bottom;
+
+            // 清除现有内容
+            d3.select('#chart').selectAll('*').remove();
+
+            svg = d3.select('#chart')
+                .append('svg')
+                .attr('width', rect.width)
+                .attr('height', rect.height);
+
+            g = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+        }
+
+        // 初始化风速数据输入框
+        function initializeWindDataInputs() {
+            const container = document.getElementById('windDataInputs');
+            if (container) {
+                container.innerHTML = '';
+                
+                for (let i = 0; i < 24; i++) {
+                    const inputDiv = document.createElement('div');
+                    inputDiv.className = 'data-input';
+                    inputDiv.innerHTML = `
+                        <label>${i}:00</label>
+                        <input type="number" id="wind_${i}" value="${windData[i]}" step="0.1" min="0" max="20">
+                    `;
+                    container.appendChild(inputDiv);
+                }
+            }
+        }
+
+        // 切换图表类型
+        function switchChartType(type) {
+            currentChartType = type;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.chart-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+            
+            // 显示/隐藏相应控制面板
+            const windSection = document.getElementById('windDataSection');
+            if (windSection) {
+                windSection.style.display = type === 'wind' ? 'block' : 'none';
+            }
+            
+            // 重置轴脊状态
+            spineStates = { top: true, bottom: true, left: true, right: true };
+            spinePositions = { left: 'normal', bottom: 'normal' };
+            
+            updateChart();
+            const typeNames = {
+                'wind': '风速图',
+                'pentagon': '五边形图',
+                'hexagon': '六边形图',
+                'sinCos': '正弦余弦图'
+            };
+            showStatus(`切换到${typeNames[type]}`, 'info');
+        }
+
+        // 更新风速数据
+        function updateWindData() {
+            for (let i = 0; i < 24; i++) {
+                const input = document.getElementById(`wind_${i}`);
+                if (input) {
+                    const value = parseFloat(input.value);
+                    if (!isNaN(value) && value >= 0 && value <= 20) {
+                        windData[i] = value;
+                    }
+                }
+            }
+            
+            if (currentChartType === 'wind') {
+                updateChart();
+            }
+            showStatus('风速数据已更新', 'success');
+        }
+
+        // 切换轴脊显示
+        function toggleSpine(spine) {
+            spineStates[spine] = !spineStates[spine];
+            
+            // 更新按钮状态
+            document.querySelectorAll('.button-group .btn').forEach(btn => {
+                if (btn.textContent.includes(getSpineName(spine))) {
+                    if (spineStates[spine]) {
+                        btn.classList.remove('active');
+                    } else {
+                        btn.classList.add('active');
+                    }
+                }
+            });
+            
+            updateChart();
+            showStatus(`${getSpineName(spine)}已${spineStates[spine] ? '显示' : '隐藏'}`, 'info');
+        }
+
+        // 切换所有轴脊
+        function toggleAllSpines() {
+            const allHidden = Object.values(spineStates).every(state => !state);
+            
+            Object.keys(spineStates).forEach(spine => {
+                spineStates[spine] = allHidden;
+            });
+            
+            // 更新所有按钮状态
+            document.querySelectorAll('.button-group .btn').forEach(btn => {
+                if (!btn.textContent.includes('全部') && !btn.textContent.includes('重置') && !btn.textContent.includes('轴脊')) {
+                    if (allHidden) {
+                        btn.classList.remove('active');
+                    } else {
+                        btn.classList.add('active');
+                    }
+                }
+            });
+            
+            updateChart();
+            showStatus(allHidden ? '所有轴脊已显示' : '所有轴脊已隐藏', 'info');
+        }
+
+        // 居中轴脊 - 让原点(0,0)位于图形正中心
+        function centerOrigin() {
+            if (currentChartType === 'wind') {
+                showStatus('风速图不支持轴脊移动功能', 'info');
+                return;
+            }
+            spinePositions.left = 'center';
+            spinePositions.bottom = 'center';
+            updateChart();
+            showStatus('原点(0,0)已移动到图形正中心', 'info');
+        }
+
+        // 重置轴脊
+        function resetSpines() {
+            spineStates = { top: true, bottom: true, left: true, right: true };
+            spinePositions = { left: 'normal', bottom: 'normal' };
+            
+            // 重置按钮状态
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            updateChart();
+            showStatus('轴脊设置已重置', 'success');
+        }
+
+
+
+        // 更新图表
+        function updateChart() {
+            if (!g) return;
+            
+            // 清除现有内容
+            g.selectAll('*').remove();
+            
+            if (currentChartType === 'wind') {
+                drawWindChart();
+            } else if (currentChartType === 'pentagon') {
+                drawPentagonChart();
+            } else if (currentChartType === 'hexagon') {
+                drawHexagonChart();
+            } else if (currentChartType === 'sinCos') {
+                drawSinCosChart();
+            }
+        }
+
+        // 绘制风速图
+        function drawWindChart() {
+            const xScale = d3.scaleLinear()
+                .domain([0, 23])
+                .range([0, width]);
+
+            const yScale = d3.scaleLinear()
+                .domain([0, 25])
+                .range([height, 0]);
+            
+            // 使用RdPu颜色映射
+            const colorScale = d3.scaleSequential(d3.interpolateRdPu)
+                .domain([0, 25]);
+
+            // 绘制网格线
+            const xGridData = xScale.ticks(6);
+            const yGridData = yScale.ticks(5);
+            
+            // 水平网格线
+            yGridData.forEach(function(yVal) {
+                g.append('line')
+                    .attr('class', 'grid-line')
+                    .attr('x1', 0)
+                    .attr('x2', width)
+                    .attr('y1', yScale(yVal))
+                    .attr('y2', yScale(yVal));
+            });
+
+            // 垂直网格线
+            xGridData.forEach(function(xVal) {
+                g.append('line')
+                    .attr('class', 'grid-line')
+                    .attr('x1', xScale(xVal))
+                    .attr('x2', xScale(xVal))
+                    .attr('y1', 0)
+                    .attr('y2', height);
+            });
+
+            // 绘制折线
+            const line = d3.line()
+                .x((d, i) => xScale(i))
+                .y(d => yScale(d))
+                .curve(d3.curveMonotoneX);
+
+            g.append('path')
+                .datum(windData)
+                .attr('class', 'line')
+                .attr('stroke', d3.interpolateRdPu(0.7))
+                .attr('d', line);
+
+            // 绘制圆形数据点，使用RdPu颜色映射
+            windData.forEach(function(d, i) {
+                g.append('circle')
+                    .attr('class', 'dot')
+                    .attr('fill', colorScale(d))
+                    .attr('stroke', '#fff')
+                    .attr('stroke-width', 2)
+                    .attr('cx', xScale(i))
+                    .attr('cy', yScale(d))
+                    .attr('r', 5);
+            });
+
+            // 绘制刻度和标签
+            drawWindAxes(xScale, yScale);
+
+            // 更新使用说明到外部元素
+            document.getElementById('chartDescription').textContent = '风速随时间变化，圆点颜色表示风速大小';
+
+            // 添加标题
+            g.append('text')
+                .attr('class', 'title')
+                .attr('x', width / 2)
+                .attr('y', -30)
+                .text('深圳市24小时平均风速变化');
+        }
+
+        // 绘制风速图的坐标轴
+        function drawWindAxes(xScale, yScale) {
+            // 计算轴脊位置 - 原点(0,0)在图形正中间
+            let xAxisY = spinePositions.bottom === 'center' ? height / 2 : height;
+            let yAxisX = spinePositions.left === 'center' ? width / 2 : 0;
+
+            // 下轴脊
+            if (spineStates.bottom) {
+                g.append('line')
+                    .attr('class', 'axis-line')
+                    .attr('x1', yAxisX)
+                    .attr('x2', width)
+                    .attr('y1', xAxisY)
+                    .attr('y2', xAxisY);
+
+                // X轴刻度
+                const xTickData = xScale.ticks(6);
+                xTickData.forEach(function(tickVal) {
+                    g.append('line')
+                        .attr('class', 'tick-line')
+                        .attr('x1', xScale(tickVal))
+                        .attr('x2', xScale(tickVal))
+                        .attr('y1', xAxisY)
+                        .attr('y2', xAxisY + 5);
+
+                    g.append('text')
+                        .attr('class', 'axis-text')
+                        .attr('x', xScale(tickVal))
+                        .attr('y', xAxisY + 20)
+                        .attr('text-anchor', 'middle')
+                        .text(tickVal + ':00');
+                });
+            }
+
+            // 上轴脊
+            if (spineStates.top) {
+                g.append('line')
+                    .attr('class', 'axis-line')
+                    .attr('x1', yAxisX)
+                    .attr('x2', width)
+                    .attr('y1', 0)
+                    .attr('y2', 0);
+            }
+
+            // 左轴脊
+            if (spineStates.left) {
+                g.append('line')
+                    .attr('class', 'axis-line')
+                    .attr('x1', yAxisX)
+                    .attr('x2', yAxisX)
+                    .attr('y1', 0)
+                    .attr('y2', height);
+
+                // Y轴刻度
+                const windYTickData = yScale.ticks(5);
+                windYTickData.forEach(function(tickVal) {
+                    g.append('line')
+                        .attr('class', 'tick-line')
+                        .attr('x1', yAxisX - 5)
+                        .attr('x2', yAxisX)
+                        .attr('y1', yScale(tickVal))
+                        .attr('y2', yScale(tickVal));
+
+                    g.append('text')
+                        .attr('class', 'axis-text')
+                        .attr('x', yAxisX - 10)
+                        .attr('y', yScale(tickVal) + 4)
+                        .attr('text-anchor', 'end')
+                        .text(tickVal.toFixed(1));
+                });
+            }
+
+            // 右轴脊
+            if (spineStates.right) {
+                g.append('line')
+                    .attr('class', 'axis-line')
+                    .attr('x1', width)
+                    .attr('x2', width)
+                    .attr('y1', 0)
+                    .attr('y2', height);
+            }
+
+            // 轴标题
+            g.append('text')
+                .attr('class', 'axis-label')
+                .attr('x', width / 2)
+                .attr('y', height + 50)
+                .attr('text-anchor', 'middle')
+                .text('时间');
+
+            g.append('text')
+                .attr('class', 'axis-label')
+                .attr('x', -40)
+                .attr('y', height / 2)
+                .attr('text-anchor', 'middle')
+                .attr('transform', `rotate(-90, -40, ${height / 2})`)
+                .text('风速 (m/s)');
+        }
+
+        // 绘制五边形图
+        function drawPentagonChart() {
+            const xScale = d3.scaleLinear()
+                .domain([-10, 10])
+                .range([0, width]);
+
+            const yScale = d3.scaleLinear()
+                .domain([-10, 10])
+                .range([height, 0]);
+
+            // 绘制网格线
+            const polygonXGridData = xScale.ticks(5);
+            const polygonYGridData = yScale.ticks(5);
+            
+            polygonYGridData.forEach(function(yVal) {
+                g.append('line')
+                    .attr('class', 'grid-line')
+                    .attr('x1', 0)
+                    .attr('x2', width)
+                    .attr('y1', yScale(yVal))
+                    .attr('y2', yScale(yVal));
+            });
+
+            polygonXGridData.forEach(function(xVal) {
+                g.append('line')
+                    .attr('class', 'grid-line')
+                    .attr('x1', xScale(xVal))
+                    .attr('x2', xScale(xVal))
+                    .attr('y1', 0)
+                    .attr('y2', height);
+            });
+
+            // 绘制五边形，中心位于(0,0)，使用RdPu颜色
+            const pentagon = createPolygon(5, xScale(0), yScale(0), xScale(3) - xScale(0));
+            g.append('polygon')
+                .attr('class', 'pentagon')
+                .attr('fill', 'rgba(221, 160, 221, 0.3)')  // RdPu中间色调
+                .attr('stroke', '#c77dff')  // RdPu深色调
+                .attr('stroke-width', 2)
+                .attr('points', pentagon);
+
+            drawPolygonAxes(xScale, yScale);
+
+            // 更新使用说明到外部元素
+            document.getElementById('chartDescription').textContent = '五边形：规则正五边形，中心在原点(0,0)';
+
+            g.append('text')
+                .attr('class', 'title')
+                .attr('x', width / 2)
+                .attr('y', -30)
+                .text('五边形');
+        }
+
+        // 绘制六边形图
+        function drawHexagonChart() {
+            const xScale = d3.scaleLinear()
+                .domain([-10, 10])
+                .range([0, width]);
+
+            const yScale = d3.scaleLinear()
+                .domain([-10, 10])
+                .range([height, 0]);
+
+            // 绘制网格线
+            const polygonXGridData = xScale.ticks(5);
+            const polygonYGridData = yScale.ticks(5);
+            
+            polygonYGridData.forEach(function(yVal) {
+                g.append('line')
+                    .attr('class', 'grid-line')
+                    .attr('x1', 0)
+                    .attr('x2', width)
+                    .attr('y1', yScale(yVal))
+                    .attr('y2', yScale(yVal));
+            });
+
+            polygonXGridData.forEach(function(xVal) {
+                g.append('line')
+                    .attr('class', 'grid-line')
+                    .attr('x1', xScale(xVal))
+                    .attr('x2', xScale(xVal))
+                    .attr('y1', 0)
+                    .attr('y2', height);
+            });
+
+            // 绘制六边形，中心位于(0,0)，使用RdPu颜色
+            const hexagon = createPolygon(6, xScale(0), yScale(0), xScale(3) - xScale(0));
+            g.append('polygon')
+                .attr('class', 'hexagon')
+                .attr('fill', 'rgba(240, 198, 246, 0.3)')  // RdPu浅色调
+                .attr('stroke', '#c77dff')  // RdPu深色调
+                .attr('stroke-width', 2)
+                .attr('points', hexagon);
+
+            drawPolygonAxes(xScale, yScale);
+
+            // 添加保存按钮
+            const saveButton = g.append('foreignObject')
+                .attr('x', width - 120)
+                .attr('y', -60)
+                .attr('width', 100)
+                .attr('height', 30)
+                .append('xhtml:div')
+                .html('<button class="btn save-btn">📷 保存图片</button>');
+            
+            // 更新使用说明到外部元素
+            document.getElementById('chartDescription').textContent = '六边形：规则正六边形，中心在原点(0,0)';
+
+            g.append('text')
+                .attr('class', 'title')
+                .attr('x', width / 2)
+                .attr('y', -30)
+                .text('六边形');
+        }
+
+        // 绘制多边形图的坐标轴
+        function drawPolygonAxes(xScale, yScale) {
+            // 计算轴脊位置 - 让(0,0)位于图形正中间
+            // center模式：让坐标轴通过数据(0,0)点，并让(0,0)位于图形中央
+            // zero模式：让坐标轴通过数据域的0点
+            // normal模式：使用默认位置
+            let xAxisY, yAxisX;
+            
+            if (spinePositions.bottom === 'center') {
+                xAxisY = yScale(0);    // X轴通过数据y=0点
+                yAxisX = xScale(0);    // Y轴通过数据x=0点
+            } else if (spinePositions.bottom === 'zero') {
+                xAxisY = yScale(0);    // X轴通过数据y=0点
+                yAxisX = xScale(0);    // Y轴通过数据x=0点
+            } else {
+                xAxisY = height;      // 默认：X轴在底部
+                yAxisX = 0;           // 默认：Y轴在左侧
+            }
+
+            // 下轴脊（水平轴）
+            if (spineStates.bottom) {
+                g.append('line')
+                    .attr('class', 'axis-line')
+                    .attr('x1', 0)
+                    .attr('x2', width)
+                    .attr('y1', xAxisY)
+                    .attr('y2', xAxisY);
+
+                // X轴刻度
+                const polygonXTickData = xScale.ticks(5);
+                polygonXTickData.forEach(function(tickVal) {
+                    g.append('line')
+                        .attr('class', 'tick-line')
+                        .attr('x1', xScale(tickVal))
+                        .attr('x2', xScale(tickVal))
+                        .attr('y1', xAxisY)
+                        .attr('y2', xAxisY + 5);
+
+                    g.append('text')
+                        .attr('class', 'axis-text')
+                        .attr('x', xScale(tickVal))
+                        .attr('y', xAxisY + 20)
+                        .attr('text-anchor', 'middle')
+                        .text(tickVal);
+                });
+            }
+
+            // 上轴脊（居中时隐藏）
+            if (spineStates.top && spinePositions.bottom !== 'center') {
+                g.append('line')
+                    .attr('class', 'axis-line')
+                    .attr('x1', yAxisX)
+                    .attr('x2', width)
+                    .attr('y1', 0)
+                    .attr('y2', 0);
+            }
+
+            // 左轴脊（垂直轴）
+            if (spineStates.left) {
+                g.append('line')
+                    .attr('class', 'axis-line')
+                    .attr('x1', yAxisX)
+                    .attr('x2', yAxisX)
+                    .attr('y1', 0)
+                    .attr('y2', height);
+
+                // Y轴刻度
+                const polygonYTickData = yScale.ticks(5);
+                polygonYTickData.forEach(function(tickVal) {
+                    g.append('line')
+                        .attr('class', 'tick-line')
+                        .attr('x1', yAxisX - 5)
+                        .attr('x2', yAxisX)
+                        .attr('y1', yScale(tickVal))
+                        .attr('y2', yScale(tickVal));
+
+                    g.append('text')
+                        .attr('class', 'axis-text')
+                        .attr('x', yAxisX - 10)
+                        .attr('y', yScale(tickVal) + 4)
+                        .attr('text-anchor', 'end')
+                        .text(tickVal);
+                });
+            }
+
+            // 右轴脊（居中时隐藏）
+            if (spineStates.right && spinePositions.bottom !== 'center') {
+                g.append('line')
+                    .attr('class', 'axis-line')
+                    .attr('x1', width)
+                    .attr('x2', width)
+                    .attr('y1', 0)
+                    .attr('y2', height);
+            }
+
+            // 轴标题
+            g.append('text')
+                .attr('class', 'axis-label')
+                .attr('x', width / 2)
+                .attr('y', height + 50)
+                .attr('text-anchor', 'middle')
+                .text('X');
+
+            g.append('text')
+                .attr('class', 'axis-label')
+                .attr('x', -40)
+                .attr('y', height / 2)
+                .attr('text-anchor', 'middle')
+                .attr('transform', `rotate(-90, -40, ${height / 2})`)
+                .text('Y');
+        }
+
+        // 绘制正弦余弦图
+        function drawSinCosChart() {
+            const xScale = d3.scaleLinear()
+                .domain([-2 * Math.PI, 2 * Math.PI])
+                .range([0, width]);
+
+            const yScale = d3.scaleLinear()
+                .domain([-2, 2])
+                .range([height, 0]);
+
+            // 生成数据点
+            const data = [];
+            for (let i = 0; i <= 200; i++) {
+                const x = -2 * Math.PI + (i / 200) * 4 * Math.PI;
+                data.push({
+                    x: x,
+                    sin: Math.sin(x),
+                    cos: Math.cos(x)
+                });
+            }
+
+            // 绘制网格线
+            const xTickValues = [-2*Math.PI, -3*Math.PI/2, -Math.PI, -Math.PI/2, 0, Math.PI/2, Math.PI, 3*Math.PI/2, 2*Math.PI];
+            const xTickText = ['-2π', '-3π/2', '-π', '-π/2', '0', 'π/2', 'π', '3π/2', '2π'];
+            const yTickValues = yScale.ticks(9);
+
+            // 垂直网格线
+            xTickValues.forEach(function(xVal) {
+                g.append('line')
+                    .attr('class', 'grid-line')
+                    .attr('x1', xScale(xVal))
+                    .attr('x2', xScale(xVal))
+                    .attr('y1', 0)
+                    .attr('y2', height);
+            });
+
+            // 水平网格线
+            yTickValues.forEach(function(yVal) {
+                g.append('line')
+                    .attr('class', 'grid-line')
+                    .attr('x1', 0)
+                    .attr('x2', width)
+                    .attr('y1', yScale(yVal))
+                    .attr('y2', yScale(yVal));
+            });
+
+            // 绘制正弦曲线
+            const sinLine = d3.line()
+                .x(d => xScale(d.x))
+                .y(d => yScale(d.sin))
+                .curve(d3.curveMonotoneX);
+
+            g.append('path')
+                .datum(data)
+                .attr('class', 'line')
+                .attr('stroke', '#c77dff')  // RdPu深色调
+                .attr('stroke-width', 3)
+                .attr('d', sinLine);
+
+            // 绘制余弦曲线
+            const cosLine = d3.line()
+                .x(d => xScale(d.x))
+                .y(d => yScale(d.cos))
+                .curve(d3.curveMonotoneX);
+
+            g.append('path')
+                .datum(data)
+                .attr('class', 'line-cos')
+                .attr('stroke', '#e7c6ff')  // RdPu中等色调
+                .attr('stroke-width', 3)
+                .attr('d', cosLine);
+
+            // 绘制坐标轴和刻度
+            drawSinCosAxes(xScale, yScale, xTickValues, xTickText);
+
+            // 更新使用说明到外部元素
+            document.getElementById('chartDescription').textContent = '正弦(深紫)、余弦(浅紫)函数曲线，周期2π';
+
+            // 添加标题
+            g.append('text')
+                .attr('class', 'title')
+                .attr('x', width / 2)
+                .attr('y', -30)
+                .text('正弦与余弦曲线');
+        }
+
+        // 绘制正弦余弦图的坐标轴
+        function drawSinCosAxes(xScale, yScale, xTickValues, xTickText) {
+            // 计算轴脊位置 - 让(0,0)位于图形正中间
+            let xAxisY, yAxisX;
+            
+            if (spinePositions.bottom === 'center') {
+                xAxisY = yScale(0);    // X轴通过数据y=0点
+                yAxisX = xScale(0);    // Y轴通过数据x=0点
+            } else if (spinePositions.bottom === 'zero') {
+                xAxisY = yScale(0);    // X轴通过数据y=0点
+                yAxisX = xScale(0);    // Y轴通过数据x=0点
+            } else {
+                xAxisY = height;      // 默认：X轴在底部
+                yAxisX = 0;           // 默认：Y轴在左侧
+            }
+
+            // 下轴脊（水平轴）
+            if (spineStates.bottom) {
+                g.append('line')
+                    .attr('class', 'axis-line')
+                    .attr('x1', 0)
+                    .attr('x2', width)
+                    .attr('y1', xAxisY)
+                    .attr('y2', xAxisY);
+
+                // X轴刻度
+                xTickValues.forEach(function(tickVal, i) {
+                    g.append('line')
+                        .attr('class', 'tick-line')
+                        .attr('x1', xScale(tickVal))
+                        .attr('x2', xScale(tickVal))
+                        .attr('y1', xAxisY)
+                        .attr('y2', xAxisY + 5);
+
+                    g.append('text')
+                        .attr('class', 'axis-text')
+                        .attr('x', xScale(tickVal))
+                        .attr('y', xAxisY + 20)
+                        .attr('text-anchor', 'middle')
+                        .text(xTickText[i]);
+                });
+            }
+
+            // 上轴脊（居中时隐藏）
+            if (spineStates.top && spinePositions.bottom !== 'center') {
+                g.append('line')
+                    .attr('class', 'axis-line')
+                    .attr('x1', yAxisX)
+                    .attr('x2', width)
+                    .attr('y1', 0)
+                    .attr('y2', 0);
+            }
+
+            // 左轴脊（垂直轴）
+            if (spineStates.left) {
+                g.append('line')
+                    .attr('class', 'axis-line')
+                    .attr('x1', yAxisX)
+                    .attr('x2', yAxisX)
+                    .attr('y1', 0)
+                    .attr('y2', height);
+
+                // Y轴刻度
+                const sinCosYTickValues = [-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2];
+                sinCosYTickValues.forEach(function(tickVal) {
+                    g.append('line')
+                        .attr('class', 'tick-line')
+                        .attr('x1', yAxisX - 5)
+                        .attr('x2', yAxisX)
+                        .attr('y1', yScale(tickVal))
+                        .attr('y2', yScale(tickVal));
+
+                    g.append('text')
+                        .attr('class', 'axis-text')
+                        .attr('x', yAxisX - 10)
+                        .attr('y', yScale(tickVal) + 4)
+                        .attr('text-anchor', 'end')
+                        .text(tickVal.toFixed(1));
+                });
+            }
+
+            // 右轴脊（居中时隐藏）
+            if (spineStates.right && spinePositions.bottom !== 'center') {
+                g.append('line')
+                    .attr('class', 'axis-line')
+                    .attr('x1', width)
+                    .attr('x2', width)
+                    .attr('y1', 0)
+                    .attr('y2', height);
+            }
+
+            // 轴标题
+            g.append('text')
+                .attr('class', 'axis-label')
+                .attr('x', width / 2)
+                .attr('y', height + 50)
+                .attr('text-anchor', 'middle')
+                .text('x');
+
+            g.append('text')
+                .attr('class', 'axis-label')
+                .attr('x', -40)
+                .attr('y', height / 2)
+                .attr('text-anchor', 'middle')
+                .attr('transform', `rotate(-90, -40, ${height / 2})`)
+                .text('y');
+        }
+
+        // 创建多边形点
+        function createPolygon(sides, centerX, centerY, radius) {
+            const points = [];
+            for (let i = 0; i < sides; i++) {
+                const angle = (i * 2 * Math.PI) / sides - Math.PI / 2;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+                points.push(`${x},${y}`);
+            }
+            return points.join(' ');
+        }
+
+        // 重置所有设置
+        function resetAll() {
+            // 重置风速数据
+            windData = [2.1, 2.3, 2.5, 2.8, 3.2, 3.6, 4.1, 4.5, 4.8, 5.1, 5.3, 5.5, 
+                       5.6, 5.4, 5.2, 4.9, 4.6, 4.2, 3.8, 3.4, 3.0, 2.7, 2.4, 2.2];
+            
+            // 重置轴脊状态
+            spineStates = { top: true, bottom: true, left: true, right: true };
+            spinePositions = { left: 'normal', bottom: 'normal' };
+            
+            // 重新初始化数据输入框
+            initializeWindDataInputs();
+            
+            // 更新图表
+            updateChart();
+            
+            // 重置按钮状态
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            showStatus('所有设置已重置', 'success');
+        }
+
+        // 获取轴脊中文名称
+        function getSpineName(spine) {
+            const names = {
+                top: '上轴脊',
+                bottom: '下轴脊',
+                left: '左轴脊',
+                right: '右轴脊'
+            };
+            return names[spine] || spine;
+        }
+
+        // 显示状态消息
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('statusMessage');
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.className = `status-message ${type} show`;
+                
+                setTimeout(() => {
+                    statusEl.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // 保存图表功能
+        function saveChart() {
+            try {
+                const svgElement = document.querySelector('#chart svg');
+                if (!svgElement) {
+                    showStatus('没有可保存的图表', 'info');
+                    return;
+                }
+
+                // 克隆SVG元素
+                const svgClone = svgElement.cloneNode(true);
+                
+                // 设置SVG命名空间
+                svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+                svgClone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+                
+                // 获取SVG内容
+                const svgData = new XMLSerializer().serializeToString(svgClone);
+                
+                // 创建Canvas
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // 设置Canvas尺寸，使用更高的分辨率
+                const svgRect = svgElement.getBoundingClientRect();
+                const scale = 2; // 提高分辨率
+                canvas.width = svgRect.width * scale;
+                canvas.height = svgRect.height * scale;
+                ctx.scale(scale, scale);
+                
+                // 创建SVG图像
+                const img = new Image();
+                const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+                const svgUrl = URL.createObjectURL(svgBlob);
+                
+                img.onload = function() {
+                    // 填充白色背景
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, svgRect.width, svgRect.height);
+                    
+                    // 绘制SVG图像
+                    ctx.drawImage(img, 0, 0, svgRect.width, svgRect.height);
+                    
+                    // 转换为Blob并下载
+                    canvas.toBlob(function(blob) {
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                        const chartName = currentChartType === 'wind' ? '风速图' :
+                                        currentChartType === 'pentagon' ? '五边形图' :
+                                        currentChartType === 'hexagon' ? '六边形图' : '正弦余弦图';
+                        link.download = `${chartName}_${timestamp}.png`;
+                        link.href = url;
+                        
+                        // 确保在点击前添加到DOM
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        
+                        // 清理URL
+                        setTimeout(() => {
+                            URL.revokeObjectURL(svgUrl);
+                            URL.revokeObjectURL(url);
+                        }, 100);
+                        
+                        showStatus('图表已保存', 'success');
+                    }, 'image/png');
+                };
+                
+                img.onerror = function() {
+                    showStatus('图片生成失败，请重试', 'info');
+                    URL.revokeObjectURL(svgUrl);
+                };
+                
+                // 设置图片源
+                img.src = svgUrl;
+                
+            } catch (error) {
+                console.error('保存图表时出错:', error);
+                showStatus('保存失败：' + error.message, 'info');
+            }
+        }
+
+        // 窗口大小改变时重新初始化图表
+        window.addEventListener('resize', function() {
+            initializeChart();
+            updateChart();
+        });
+    </script>
+</body>
+</html>
