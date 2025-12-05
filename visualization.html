@@ -4,14 +4,74 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>数据可视化交互网页 - 第6章示例</title>
-    <script src="https://unpkg.com/d3@7/dist/d3.min.js"></script>
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <script>
-        // 备用CDN加载方案
-        if (typeof d3 === 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'https://d3js.org/d3.v7.min.js';
-            document.head.appendChild(script);
+        // 多重CDN备用加载方案 - 优化Cloudflare兼容性
+        function loadD3() {
+            return new Promise((resolve, reject) => {
+                const cdns = [
+                    'https://unpkg.com/d3@7/dist/d3.min.js',
+                    'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js',
+                    'https://d3js.org/d3.v7.min.js',
+                    'https://fastly.jsdelivr.net/npm/d3@7/dist/d3.min.js'
+                ];
+                
+                let currentIndex = 0;
+                
+                function tryLoadCDN() {
+                    if (currentIndex >= cdns.length) {
+                        reject(new Error('所有CDN都无法加载D3.js'));
+                        return;
+                    }
+                    
+                    const script = document.createElement('script');
+                    script.src = cdns[currentIndex];
+                    script.async = false;
+                    
+                    script.onload = function() {
+                        if (typeof d3 !== 'undefined') {
+                            resolve(d3);
+                        } else {
+                            currentIndex++;
+                            tryLoadCDN();
+                        }
+                    };
+                    
+                    script.onerror = function() {
+                        currentIndex++;
+                        tryLoadCDN();
+                    };
+                    
+                    // 设置超时
+                    script.timeout = 3000;
+                    script.ontimeout = function() {
+                        currentIndex++;
+                        tryLoadCDN();
+                    };
+                    
+                    document.head.appendChild(script);
+                }
+                
+                tryLoadCDN();
+            });
         }
+        
+        // 立即开始加载
+        loadD3().catch(error => {
+            console.error('D3.js加载失败:', error);
+            document.addEventListener('DOMContentLoaded', function() {
+                document.body.innerHTML = `
+                    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+                        <h2>📊 数据可视化加载失败</h2>
+                        <p>无法加载图表库，请检查网络连接或刷新页面重试。</p>
+                        <button onclick="location.reload()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">重新加载</button>
+                    </div>
+                `;
+            });
+        });
     </script>
     <style>
         * {
